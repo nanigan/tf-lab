@@ -8,9 +8,6 @@ on:
 jobs:
   terraform:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./tf-lab
 
     steps:
     - name: Checkout code
