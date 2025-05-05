@@ -1,4 +1,10 @@
 terraform {
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "~>3.0"
+    }
+  }
   backend "azurerm" {
     resource_group_name   = "rg-cummins-tf-lab"
     storage_account_name  = "stgsnefftflab"
@@ -9,9 +15,5 @@ terraform {
 
 provider "azurerm" {
   features {}
-
-  client_id       = var.AZURE_CLIENT_ID
-  client_secret   = var.AZURE_CLIENT_SECRET
-  subscription_id = var.AZURE_SUBSCRIPTION_ID
-  tenant_id       = var.AZURE_TENANT_ID
 }
+
