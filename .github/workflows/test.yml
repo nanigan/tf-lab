@@ -5,9 +5,14 @@ jobs:
   test:
     permissions:
       id-token: write # Require write permission to Fetch an OIDC token.
+      contents: read
 
     runs-on: ubuntu-latest
     steps:
+
+    - name: Checkout code
+      uses: actions/checkout@v3
+
     - name: Azure CLI Login
       uses: azure/login@v1.4.0
       with:
