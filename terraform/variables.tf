@@ -1,17 +1,17 @@
 # Azure Authentication Variables
-variable "tenant_id" {
+variable "AZURE_TENANT_ID" {
   description = "Azure Tenant ID"
   type        = string
   default     = "742d51bd-901c-4bbe-baff-fc05a7073fd2"
 }
 
-variable "subscription_id" {
+variable "AZURE_SUBSCRIPTION_ID" {
   description = "Azure Subscription ID"
   type        = string
   default     = "1f4db9dc-679c-4e26-bfe5-e7ceda3c87e3"
 }
 
-variable "client_id" {
+variable "AZURE_CLIENT_ID" {
   description = "Azure Client ID for authentication"
   type        = string
 }
