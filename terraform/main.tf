@@ -1,7 +1,3 @@
-# Configure the Azure Provider
-provider "azurerm" {
-  features {}
-}
 
 # Configure Authentication (Using Federated Credentials)
 provider "azurerm" {
