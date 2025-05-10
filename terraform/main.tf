@@ -7,9 +7,9 @@ provider "azurerm" {
 provider "azurerm" {
   features {}
 
-  tenant_id       = var.tenant_id
-  subscription_id = var.subscription_id
-  client_id       = var.client_id
+  tenant_id       = var.AZURE_TENANT_ID
+  subscription_id = var.AZURE_SUBSCRIPTION_ID
+  client_id       = var.AZURE_CLIENT_ID
 }
 
 # Define the Resource Group
