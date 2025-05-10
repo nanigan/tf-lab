@@ -6,10 +6,9 @@ provider "azurerm" {
 # Configure Authentication (Using Federated Credentials)
 provider "azurerm" {
   features {}
-
-  tenant_id       = var.AZURE_TENANT_ID
-  subscription_id = var.AZURE_SUBSCRIPTION_ID
-  client_id       = var.AZURE_CLIENT_ID
+  tenant_id       = var.tenant_id
+  subscription_id = var.subscription_id
+  client_id       = var.client_id
 }
 
 # Define the Resource Group
