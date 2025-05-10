@@ -8,6 +8,8 @@ on:
 jobs:
   terraform:
     runs-on: ubuntu-latest
+    environment: production  # Using production environment
+
     permissions:
       id-token: write  # Enables OIDC authentication
       contents: read
