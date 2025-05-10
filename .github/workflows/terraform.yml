@@ -18,14 +18,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Change directory to Terraform config
-        run: cd terraform
-
-      - name: Terraform Init
-        run: |
-          cd terraform
-          terraform init
-
       - name: Install Terraform
         run: |
           sudo apt-get update && sudo apt-get install -y gnupg software-properties-common
@@ -39,14 +31,20 @@ jobs:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          allow-no-subscriptions: true  # Prevents errors if no active subscriptions
-          enable-AzPSSession: false  # Set to false if not using Azure PowerShell
+          allow-no-subscriptions: true
+          enable-AzPSSession: false
 
       - name: Terraform Init
-        run: terraform init
+        run: |
+          cd terraform  # Ensure Terraform runs in the correct directory
+          terraform init
 
       - name: Terraform Plan
-        run: terraform plan -out=tfplan
+        run: |
+          cd terraform
+          terraform plan -out=tfplan
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve tfplan
+        run: |
+          cd terraform
+          terraform apply -auto-approve tfplan
