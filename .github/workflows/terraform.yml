@@ -8,10 +8,10 @@ on:
 jobs:
   terraform:
     runs-on: ubuntu-latest
-    environment: production  # Using production environment
+    environment: production
 
     permissions:
-      id-token: write  # Enables OIDC authentication
+      id-token: write
       contents: read
 
     steps:
@@ -24,7 +24,7 @@ jobs:
           curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
           sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
           sudo apt-get update && sudo apt-get install terraform
-      
+
       - name: Login to Azure using Federated Credentials
         uses: azure/login@v1
         with:
@@ -36,15 +36,24 @@ jobs:
 
       - name: Terraform Init
         run: |
-          cd terraform  # Ensure Terraform runs in the correct directory
+          cd terraform
           terraform init
 
+
       - name: Terraform Plan
+        env:
+          TF_VAR_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          TF_VAR_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          TF_VAR_client_id: ${{ secrets.AZURE_CLIENT_ID }}
         run: |
           cd terraform
           terraform plan -out=tfplan
 
       - name: Terraform Apply
+        env:
+          TF_VAR_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          TF_VAR_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          TF_VAR_client_id: ${{ secrets.AZURE_CLIENT_ID }}
         run: |
           cd terraform
           terraform apply -auto-approve tfplan
