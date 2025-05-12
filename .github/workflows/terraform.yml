@@ -34,6 +34,11 @@ jobs:
           allow-no-subscriptions: true
           enable-AzPSSession: false
 
+      - name: Terraform Init
+        run: |
+          cd terraform
+          terraform init
+
       - name: Terraform Import Resource Group
         env:
           TF_VAR_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
@@ -41,14 +46,7 @@ jobs:
           TF_VAR_client_id: ${{ secrets.AZURE_CLIENT_ID }}
         run: |
           cd terraform
-          terraform import azurerm_resource_group.rg /subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/rg-cummins-tf-lab || echo "Import skipped (resource may already be managed)"
-
-
-      - name: Terraform Init
-        run: |
-          cd terraform
-          terraform init
-
+          _resource_group.rg /subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/rg-cummins-tf-lab || echo "Import skipped or already done"
 
       - name: Terraform Plan
         env:
