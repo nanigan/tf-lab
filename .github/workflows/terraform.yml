@@ -1,9 +1,7 @@
 name: Terraform Deployment (Test)
 
 on:
-  push:
-    branches:
-      - main
+  push
 
 jobs:
   terraform:
