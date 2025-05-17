@@ -1,5 +1,5 @@
-storage_account_name = "stgsnefftflab"
+storage_account_name = "sa01poc20099wh701"
 container_name       = "tfstate"
-resource_group_name  = "rg-cummins-tf-lab"
+resource_group_name  = "rg-cummins-tf-lab2-wh701"
 key                  = "test.terraform.tfstate"
 location             = "westus2"
