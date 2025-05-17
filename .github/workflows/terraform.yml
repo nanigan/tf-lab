@@ -11,8 +11,9 @@ concurrency:
 
 jobs:
   terraform:
-    runs-on:
-    environment: test  # Add this line
+    name: Terraform Apply (Test)
+    runs-on: ubuntu-latest
+    environment: test
 
     permissions:
       id-token: write
