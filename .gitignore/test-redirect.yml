@@ -1,0 +1,28 @@
+name: Test Redirect Connectivity to login.microsoftonline.com
+
+on:
+  push
+
+jobs:
+  test-connectivity:
+    #runs-on: sandbox-azure-runner
+    runs-on: shell-runner-set-poc-org
+    steps:
+      - name: Test connectivity with redirect follow and verbose output
+        id: test-connection
+        run: |
+          echo "Testing connectivity and following redirects..."
+          curl -L -v -o /dev/null https://login.microsoftonline.com 2>&1 | tee curl_output.log
+
+          STATUS=$(curl -s -L -o /dev/null -w "%{http_code}" https://login.microsoftonline.com)
+          echo "Final HTTP Status Code: $STATUS"
+
+          if [ "$STATUS" -eq 200 ]; then
+            echo "connectivity_status=success" >> $GITHUB_OUTPUT
+          else
+            echo "connectivity_status=failure (HTTP $STATUS)" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Output connectivity status
+        run: |
+          echo "Connectivity Test Result: ${{ steps.test-connection.outputs.connectivity_status }}"

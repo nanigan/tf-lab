@@ -1,0 +1,12 @@
+name: Test SSL Connectivity to login.microsoftonline.com
+
+on:
+  push
+
+jobs:
+  test-connectivity:
+    #runs-on: sandbox-azure-runner
+    runs-on: shell-runner-set-poc-org
+    steps:
+      - name: Run curl with verbose and header output
+        run: curl -Iv https://login.microsoftonline.com

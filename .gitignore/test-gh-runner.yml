@@ -1,11 +1,12 @@
-name: Run Azure CLI Login with OpenID Connect
+name: Run Azure CLI Login with OpenID Connect on GitHub hosted runner
 
-on: [push]
+on: 
+  push
 
 jobs:
-    environment: production  # Add this line  test:
+  test:
     runs-on: ubuntu-latest
-
+    environment: test  # Add this line
 
     permissions:
       id-token: write

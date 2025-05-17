@@ -1,0 +1,79 @@
+name: Connectivity Test
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: 
+      group: sandbox-azure-runner-group
+    environment: test
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Azure CLI Login
+        uses: azure/login@v1.4.0
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Install DNS tools
+        run: |
+          if ! command -v nslookup &> /dev/null; then
+            echo "Installing dnsutils..."
+            sudo apt-get update
+            sudo apt-get install -y dnsutils
+          fi
+
+      - name: DNS Resolution and Blob Access Test
+        run: |
+          public_dns="sa01poc20099wh701.blob.core.windows.net"
+          private_dns="sa01poc20099wh701.privatelink.blob.core.windows.net"
+          blob_account="sa01poc20099wh701"
+          container="tfstate"
+          blob_name="test/terraform.tfstate"
+          output_file="downloaded.tfstate"
+
+          echo "🔍 Testing DNS resolution..." | tee connectivity.log
+
+          echo "Public DNS ($public_dns):" | tee -a connectivity.log
+          if nslookup $public_dns >> connectivity.log 2>&1; then
+            echo "✅ Public DNS resolved successfully." | tee -a connectivity.log
+          else
+            echo "❌ Public DNS resolution failed." | tee -a connectivity.log
+          fi
+
+          echo "Private DNS ($private_dns):" | tee -a connectivity.log
+          if nslookup $private_dns >> connectivity.log 2>&1; then
+            echo "✅ Private DNS resolved successfully." | tee -a connectivity.log
+          else
+            echo "❌ Private DNS resolution failed." | tee -a connectivity.log
+          fi
+
+          echo "📥 Attempting to download blob using Azure CLI..." | tee -a connectivity.log
+          if az storage blob download \
+            --account-name "$blob_account" \
+            --container-name "$container" \
+            --name "$blob_name" \
+            --file "$output_file" \
+            --auth-mode login >> connectivity.log 2>&1; then
+            echo "✅ Blob download succeeded." | tee -a connectivity.log
+          else
+            echo "❌ Blob download failed." | tee -a connectivity.log
+            exit 1
+          fi
+
+      - name: Upload connectivity log
+        uses: actions/upload-artifact@v4
+        with:
+          name: connectivity-log
+          path: connectivity.log

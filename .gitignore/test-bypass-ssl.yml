@@ -1,0 +1,12 @@
+name: Test Connectivity Without SSL Verification
+
+on:
+  push
+
+jobs:
+  test-connectivity:
+    #runs-on: sandbox-azure-runner
+    runs-on: shell-runner-set-poc-org
+    steps:
+      - name: Test connectivity with --insecure
+        run: curl -k -Iv https://login.microsoftonline.com
