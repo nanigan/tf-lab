@@ -84,7 +84,7 @@ jobs:
               -backend-config="tenant_id=${{ secrets.AZURE_TENANT_ID }}" \
               -backend-config="client_id=${{ secrets.AZURE_CLIENT_ID }}" \
               -backend-config="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
-              -backend-config="storage_account_name=sa01poc20099wh701" \
+              -backend-config="storage_account_name=stgsnefftflab" \
               -backend-config="container_name=tfstate" \
               -backend-config="key=test/terraform.tfstate" \
               && break || sleep 10
