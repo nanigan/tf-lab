@@ -1,3 +1,16 @@
+# ─────────────────────────────────────────────
+# Terraform Configuration
+# ─────────────────────────────────────────────
+terraform {
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "~> 3.0"
+    }
+  }
+
+  backend "azurerm" {}
+}
 
 # ─────────────────────────────────────────────
 # Azure Provider Configuration (Federated Auth)
