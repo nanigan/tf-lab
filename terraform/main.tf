@@ -9,11 +9,18 @@ terraform {
     }
   }
 
-  backend "azurerm" {}
+  backend "azurerm" {
+    # These values are overridden at runtime via CLI in GitHub Actions
+    resource_group_name  = "rg-cummins-tf-lab"
+    storage_account_name = "stgsnefftflab"
+    container_name       = "tfstate"
+    key                  = "PLACEHOLDER"
+    use_oidc             = true
+  }
 }
 
 # ─────────────────────────────────────────────
-# Azure Provider Configuration (Federated Auth)
+# Azure Provider Configuration (OIDC for GitHub Actions)
 # ─────────────────────────────────────────────
 provider "azurerm" {
   features {}
@@ -22,7 +29,7 @@ provider "azurerm" {
   subscription_id = var.subscription_id
   client_id       = var.client_id
 
-  use_oidc = true  # ✅ Required for GitHub Actions OIDC authentication
+  use_oidc = true
 }
 
 # ─────────────────────────────────────────────
@@ -34,7 +41,7 @@ resource "azurerm_resource_group" "rg" {
 }
 
 # ─────────────────────────────────────────────
-# Outputs (Used in CI/CD or for reference)
+# Outputs
 # ─────────────────────────────────────────────
 output "resource_group_name" {
   description = "The name of the created or imported resource group"
