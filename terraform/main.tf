@@ -8,15 +8,6 @@ terraform {
       version = "~> 3.0"
     }
   }
-
-  backend "azurerm" {
-    # These values are overridden at runtime via CLI in GitHub Actions
-    resource_group_name  = "rg-cummins-tf-lab"
-    storage_account_name = "stgsnefftflab"
-    container_name       = "tfstate"
-    key                  = "PLACEHOLDER"
-    use_oidc             = true
-  }
 }
 
 # ─────────────────────────────────────────────
@@ -47,3 +38,4 @@ output "resource_group_name" {
   description = "The name of the created or imported resource group"
   value       = azurerm_resource_group.rg.name
 }
+
