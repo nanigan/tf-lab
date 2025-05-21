@@ -1,73 +1,120 @@
+
 name: Terraform Deployment
 
 on:
   push:
     branches:
-      - main  # Trigger workflow only on pushes to the main branch
+      - scratch-5202025
 
 concurrency:
   group: terraform-deploy
-  cancel-in-progress: true  # Cancel any in-progress runs if a new one starts
+  cancel-in-progress: true
 
 jobs:
   terraform:
-    name: Terraform Apply (${{ github.environment }})
-    runs-on: ubuntu-latest
-    environment: test  # GitHub Environment (used for secrets and tfvars selection)
+    runs-on:
+      group: sandbox-azure-runner-group
+    environment: test
 
     permissions:
-      id-token: write  # Required for OIDC authentication with Azure
-      contents: read   # Required to checkout the repo
+      id-token: write
+      contents: read
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-        # Pulls your Terraform code from the GitHub repository
+
+      - name: Install Node.js
+        run: |
+          curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+          sudo apt-get install -y nodejs
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.6.6
-        # Installs the specified version of Terraform
 
-      - name: Azure Login via OIDC
+      - name: Login to Azure using Federated Credentials
         uses: azure/login@v1
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-        # Authenticates to Azure using federated credentials (OIDC)
+          allow-no-subscriptions: true
+          enable-AzPSSession: false
 
-      - name: Terraform Init
+      - name: Terraform Format
+        working-directory: terraform
+        run: terraform fmt -recursive
+
+      - name: Generate test.tfvars from secrets
         working-directory: terraform
         run: |
-          terraform init -reconfigure \
-            -backend-config="tenant_id=${{ secrets.AZURE_TENANT_ID }}" \
-            -backend-config="client_id=${{ secrets.AZURE_CLIENT_ID }}" \
-            -backend-config="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
-            -backend-config="storage_account_name=stgsnefftflab" \
-            -backend-config="container_name=tfstate" \
-            -backend-config="key=${{ github.environment }}/terraform.tfstate"
-        # Initializes Terraform and configures the backend dynamically based on the environment
+          cat <<EOF > test.tfvars
+          tenant_id           = "${{ secrets.AZURE_TENANT_ID }}"
+          subscription_id     = "${{ secrets.AZURE_SUBSCRIPTION_ID }}"
+          client_id           = "${{ secrets.AZURE_CLIENT_ID }}"
+          storage_account_name = "stgsnefftflab"
+          container_name       = "tfstate"
+          resource_group_name  = "rg-cummins-tf-lab"
+          key                  = "test/terraform.tfstate"
+          location             = "westus2"
+          environment          = "test"
+          key_vault_name       = "sneffkvtpersonal"
+          tags = {
+            environment     = "test"
+            appid           = "20099"
+            bc              = "598"
+            rc              = "143"
+            bu              = "cbs"
+            techowner       = "it069"
+            billingowner    = "Low"
+            billtag         = "rg"
+            cc              = "na"
+          }
+          EOF
+
+      - name: Confirm test.tfvars content
+        working-directory: terraform
+        run: |
+          echo "Contents of test.tfvars:"
+          cat test.tfvars
+
+      - name: Terraform Init for Unlock (TEMPORARY)
+        working-directory: terraform
+        run: |
+          terraform init -reconfigure             -backend-config="tenant_id=${{ secrets.AZURE_TENANT_ID }}"             -backend-config="client_id=${{ secrets.AZURE_CLIENT_ID }}"             -backend-config="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}"             -backend-config="storage_account_name=stgsnefftflab"             -backend-config="container_name=tfstate"             -backend-config="key=test/terraform.tfstate"
+
+      - name: Terraform Init with Retry
+        working-directory: terraform
+        run: |
+          for i in {1..3}; do
+            terraform init -reconfigure               -backend-config="tenant_id=${{ secrets.AZURE_TENANT_ID }}"               -backend-config="client_id=${{ secrets.AZURE_CLIENT_ID }}"               -backend-config="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}"               -backend-config="storage_account_name=sa01poc20099wh701"               -backend-config="container_name=tfstate"               -backend-config="key=test/terraform.tfstate"               && break || sleep 10
+          done
+
+
+      # Uncomment the following lines if you need to import an existing resource group
+      # Note: This is a temporary step and should be removed after the initial run
+      # - name: Import existing resource group (TEMPORARY)
+      #   working-directory: terraform
+      #   run: |
+      #     terraform import -var-file=test.tfvars azurerm_resource_group.rg "/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/rg-cummins-tf-lab2-wh701"
 
       - name: Terraform Validate
         working-directory: terraform
         run: terraform validate
-        # Validates the Terraform configuration files
 
-      - name: Terraform Plan
+      - name: Terraform Plan with Retry
         working-directory: terraform
         run: |
-          terraform plan \
-            -var="tenant_id=${{ secrets.AZURE_TENANT_ID }}" \
-            -var="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
-            -var="client_id=${{ secrets.AZURE_CLIENT_ID }}" \
-            -var-file="${{ github.environment }}.tfvars" \
-            -out=tfplan
-        # Generates an execution plan using secrets and environment-specific tfvars
+          for i in {1..3}; do
+            terraform plan -lock-timeout=60s -input=false -var-file=test.tfvars -out=tfplan && break || sleep 10
+          done
 
-      - name: Terraform Apply
-        if: github.ref == 'refs/heads/main'
+      - name: Terraform Apply with Retry
+        if: github.ref == 'refs/heads/scratch-5202025'
         working-directory: terraform
-        run: terraform apply -auto-approve tfplan
-        # Applies the Terraform plan automatically (only on main branch)
+        run: |
+          for i in {1..3}; do
+            terraform apply -lock-timeout=60s -auto-approve tfplan && break || sleep 10
+          done
