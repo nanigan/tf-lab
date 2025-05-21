@@ -1,8 +1,0 @@
-tenant_id            = "dev-tenant-id"
-subscription_id      = "dev-subscription-id"
-client_id            = "dev-client-id"
-storage_account_name = "devstorageacct"
-container_name       = "tfstate"
-resource_group_name  = "rg-dev-tf"
-key                  = "dev.terraform.tfstate"
-location             = "eastus2"

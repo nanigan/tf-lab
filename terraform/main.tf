@@ -1,4 +1,3 @@
-
 # ─────────────────────────────────────────────
 # Azure Provider Configuration (Federated Auth)
 # ─────────────────────────────────────────────
@@ -13,15 +12,24 @@ provider "azurerm" {
 }
 
 # ─────────────────────────────────────────────
-# Resource Group Definition
+# Tag Logic (Inline "module")
 # ─────────────────────────────────────────────
+locals {
+  default_tags = {
+    created_by = "terraform"
+  }
 
-resource "azurerm_resource_group" "rg" {
-  name = var.resource_group_name
-  location = var.location
-  tags = var.tags
+  merged_tags = merge(local.default_tags, var.tags)
 }
 
+# ─────────────────────────────────────────────
+# Resource Group Definition
+# ─────────────────────────────────────────────
+resource "azurerm_resource_group" "rg" {
+  name     = var.resource_group_name
+  location = var.location
+  tags     = local.merged_tags
+}
 
 # ─────────────────────────────────────────────
 # Outputs (Used in CI/CD or for reference)

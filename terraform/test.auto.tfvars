@@ -1,12 +1,10 @@
-
 storage_account_name = "stgsnefftflab"
 container_name       = "tfstate"
 key                  = "test/terraform.tfstate"
 resource_group_name  = "rg-cummins-tf-lab"
 location             = "westus2"
 environment          = "test"
-
-key_vault_name       = "sneffkvtpersonal"
+key_vault_name       = "sneffkvtflab2"
 
 tags = {
   environment     = "test"
