@@ -4,7 +4,7 @@ name: Terraform Deployment
 on:
   push:
     branches:
-      - scratch-5202025
+      - main
 
 concurrency:
   group: terraform-deploy
