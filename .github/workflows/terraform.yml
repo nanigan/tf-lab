@@ -3,114 +3,88 @@ name: Terraform Deployment
 on:
   push:
     branches:
-      - main  # Trigger only on this branch
+      - main
+      - test
+      - prod
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment (test, prod)'
+        required: true
+        default: 'test'
 
 concurrency:
-  group: terraform-deploy
-  cancel-in-progress: true  # Cancel previous runs if a new one starts
+  group: terraform-deploy-${{ github.ref_name }}
+  cancel-in-progress: true
 
 jobs:
   terraform:
+    environment: ${{ github.event.inputs.environment || (github.ref_name == 'main' && 'prod') || (github.ref_name == 'test' && 'test') || (github.ref_name == 'prod' && 'prod') || 'test' }}
     runs-on: ubuntu-latest
-    environment: test
 
     permissions:
-      id-token: write  # Required for OIDC login to Azure
-      contents: read
+      id-token: write    # Required for OIDC authentication with Azure
+      contents: read     # Allows workflow to read repository contents
+
+    env:
+      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}           # Azure client ID from environment secrets
+      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}           # Azure tenant ID from environment secrets
+      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }} # Azure subscription ID from environment secrets
+      ARM_USE_OIDC: "true"                                    # Instructs provider/backend to use OIDC
+      BRANCH_NAME: ${{ github.ref_name }}                     # Current branch name
+      ENV_NAME: ${{ github.event.inputs.environment || (github.ref_name == 'main' && 'prod') || (github.ref_name == 'test' && 'test') || (github.ref_name == 'prod' && 'prod') || 'test' }} # Target environment
+      TF_ROOT: terraform/environments/${{ github.event.inputs.environment || (github.ref_name == 'main' && 'prod') || (github.ref_name == 'test' && 'test') || (github.ref_name == 'prod' && 'prod') || 'test' }} # Path to environment code
+      BACKEND_KEY: ${{ github.event.inputs.environment || (github.ref_name == 'main' && 'prod') || (github.ref_name == 'test' && 'test') || (github.ref_name == 'prod' && 'prod') || 'test' }}/terraform.tfstate # State file key
 
     steps:
-      # 📥 Checkout the repository
       - name: Checkout repository
         uses: actions/checkout@v3
+        # Checks out your repository code so workflow steps can access it
 
-      # 🛠️ Install Node.js (if needed for tooling/scripts)
       - name: Install Node.js
         run: |
           curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
           sudo apt-get install -y nodejs
+        # Installs Node.js, required if your Terraform modules or scripts use Node.js
 
-      # 📦 Setup Terraform CLI
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.8.5
+        # Installs the specified version of Terraform CLI
 
-      # 🔐 Authenticate to Azure using OIDC
-      - name: Login to Azure using Federated Credentials
-        uses: azure/login@v1
+      - name: Login to Azure using federated credentials
+        uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          allow-no-subscriptions: true
-          enable-AzPSSession: false
+        # Authenticates to Azure using OIDC and the credentials from environment secrets
 
-      # 🧹 Format Terraform code
-      - name: Terraform Format
-        working-directory: terraform
-        run: terraform fmt -recursive
+      - name: Terraform Init
+        working-directory: ${{ env.TF_ROOT }}
+        run: terraform init -reconfigure -backend-config=backend.tfvars
+        # Initializes Terraform, configures the backend for remote state storage
 
-      # 🔐 Generate secrets.auto.tfvars from GitHub secrets
-      - name: Generate secrets.auto.tfvars
-        working-directory: terraform
-        run: |
-          cat <<EOF > secrets.auto.tfvars
-          tenant_id       = "${{ secrets.AZURE_TENANT_ID }}"
-          subscription_id = "${{ secrets.AZURE_SUBSCRIPTION_ID }}"
-          client_id       = "${{ secrets.AZURE_CLIENT_ID }}"
-          EOF
+        # This step is commented out to avoid removing the resource group from state.
+      # - name: Remove resource group from state (if present)
+      #   working-directory: ${{ env.TF_ROOT }}
+      #   run: |
+      #     terraform state rm azurerm_resource_group.rg || true
+        # (Optional) Removes the resource group from Terraform state if it was previously managed
 
-      # ⚙️ Terraform Init (TEMPORARY unlock step)
-      - name: Terraform Init for Unlock (TEMPORARY)
-        working-directory: terraform
-        run: |
-          terraform init -reconfigure \
-            -backend-config="tenant_id=${{ secrets.AZURE_TENANT_ID }}" \
-            -backend-config="client_id=${{ secrets.AZURE_CLIENT_ID }}" \
-            -backend-config="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
-            -backend-config="storage_account_name=stgsnefftflab" \
-            -backend-config="container_name=tfstate" \
-            -backend-config="key=test/terraform.tfstate"
-
-      # 🔁 Retryable Terraform Init
-      - name: Terraform Init with Retry
-        working-directory: terraform
-        run: |
-          for i in {1..3}; do
-            terraform init -reconfigure \
-              -backend-config="tenant_id=${{ secrets.AZURE_TENANT_ID }}" \
-              -backend-config="client_id=${{ secrets.AZURE_CLIENT_ID }}" \
-              -backend-config="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
-              -backend-config="storage_account_name=stgsnefftflab" \
-              -backend-config="container_name=tfstate" \
-              -backend-config="key=test/terraform.tfstate" \
-              && break || sleep 10
-          done
-
-      # ✅ Validate Terraform configuration
       - name: Terraform Validate
-        working-directory: terraform
+        working-directory: ${{ env.TF_ROOT }}
         run: terraform validate
+        # Validates the Terraform configuration files
 
-      # 📋 Terraform Plan (auto-loads *.auto.tfvars)
-      - name: Terraform Plan with Retry
-        working-directory: terraform
-        run: |
-          for i in {1..3}; do
-            terraform plan -lock-timeout=60s -input=false -out=tfplan && break || sleep 10
-          done
+      - name: Terraform Plan
+        working-directory: ${{ env.TF_ROOT }}
+        run: terraform plan -lock-timeout=60s -input=false -out=tfplan
+        # Creates an execution plan and saves it to a file
 
-      # 🚀 Terraform Apply (only on matching branch)
-      - name: Terraform Apply with Retry
-        if: github.ref == 'refs/main'
-        working-directory: terraform
-        run: |
-          for i in {1..3}; do
-            terraform apply -lock-timeout=60s -auto-approve tfplan && break || sleep 10
-          done
-
-      # 🧼 Cleanup secrets file
-      - name: Cleanup tfvars
-        if: always()
-        working-directory: terraform
-        run: rm -f secrets.auto.tfvars
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/prod' || github.ref == 'refs/heads/test'
+        working-directory: ${{ env.TF_ROOT }}
+        run: terraform apply -lock-timeout=60s -auto-approve tfplan
+        # Applies the Terraform plan to provision/update resources (only on main, prod, or test branches)

@@ -1,40 +1,4 @@
 # ─────────────────────────────────────────────
-# Azure Authentication
-# ─────────────────────────────────────────────
-variable "tenant_id" {
-  description = "Azure Active Directory Tenant ID"
-  type        = string
-}
-
-variable "subscription_id" {
-  description = "Azure Subscription ID"
-  type        = string
-}
-
-variable "client_id" {
-  description = "Azure Client ID used for federated authentication"
-  type        = string
-}
-
-# ─────────────────────────────────────────────
-# Terraform Backend Configuration (used in workflow only)
-# ─────────────────────────────────────────────
-variable "storage_account_name" {
-  description = "Azure Storage Account name for storing Terraform state"
-  type        = string
-}
-
-variable "container_name" {
-  description = "Blob container name for Terraform state files"
-  type        = string
-}
-
-variable "key" {
-  description = "Key (filename) for the Terraform state file"
-  type        = string
-}
-
-# ─────────────────────────────────────────────
 # Environment Metadata
 # ─────────────────────────────────────────────
 variable "environment" {
@@ -65,6 +29,19 @@ variable "key_vault_name" {
 }
 
 # ─────────────────────────────────────────────
+# VNet Configuration
+# ─────────────────────────────────────────────
+variable "vnet_name" {
+  description = "Name of the Azure Virtual Network"
+  type        = string
+}
+
+variable "vnet_address_space" {
+  description = "Address space for the Azure Virtual Network"
+  type        = list(string)
+}
+
+# ─────────────────────────────────────────────
 # Tagging
 # ─────────────────────────────────────────────
 variable "tags" {
@@ -73,15 +50,15 @@ variable "tags" {
 
   validation {
     condition = alltrue([
-      contains(keys(var.tags), "environment"),
       contains(keys(var.tags), "appid"),
       contains(keys(var.tags), "bc"),
-      contains(keys(var.tags), "rc"),
-      contains(keys(var.tags), "bu"),
-      contains(keys(var.tags), "techowner"),
       contains(keys(var.tags), "billingowner"),
       contains(keys(var.tags), "billtag"),
-      contains(keys(var.tags), "cc")
+      contains(keys(var.tags), "bu"),
+      contains(keys(var.tags), "cc"),
+      contains(keys(var.tags), "environment"),
+      contains(keys(var.tags), "rc"),
+      contains(keys(var.tags), "techowner")
     ])
     error_message = "The 'tags' map must include: environment, appid, bc, rc, bu, techowner, billingowner, billtag, and cc."
   }
